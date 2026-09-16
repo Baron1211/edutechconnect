@@ -182,6 +182,13 @@ document.addEventListener('click', (e)=>{ if(e.target.closest('[data-nav]')) clo
 // Admin Panel's Courses page is exactly what shows up here — no more
 // separate hardcoded copy to keep in sync.
 let COURSES = [];
+let PAYMENT_INFO = { momoNetwork:'Mobile Money', momoNumber:'Contact EDUTECH', momoName:'EDUTECH Educational Consult', bankName:'Not set yet', bankAccountName:'EDUTECH Educational Consult', bankAccountNumber:'Contact EDUTECH' };
+async function loadPaymentSettings(){
+  const { data, error } = await sb.from('website_settings').select('*');
+  if(error){ console.error('Failed to load payment settings', error); return; }
+  const map = {}; (data||[]).forEach(r=>map[r.key]=r.value);
+  PAYMENT_INFO = { ...PAYMENT_INFO, ...map };
+}
 let coursesLoaded = false;
 async function loadCourses(){
   const { data, error } = await sb.from('courses')
@@ -833,8 +840,8 @@ function regStep4(){
       <p class="text-forest-300 font-semibold text-sm mb-1">Fee due for ${d.courses.length} course${d.courses.length===1?'':'s'}</p>
       <p class="font-display text-3xl font-bold mb-4">GHS ${total}<span class="text-base text-white/50">/month</span></p>
       <div class="border-t border-white/10 pt-3 text-sm text-white/70 space-y-1">
-        <p>Mobile Money: MTN — 024 000 0000</p>
-        <p>Bank: GCB Bank — 1234567890123</p>
+        <p>Mobile Money: ${PAYMENT_INFO.momoNetwork} — ${PAYMENT_INFO.momoNumber}</p>
+        <p>Bank: ${PAYMENT_INFO.bankName} — ${PAYMENT_INFO.bankAccountNumber}</p>
         <p class="text-white/50 text-xs pt-1">Payment instructions will also be sent to you on WhatsApp once your application is approved.</p>
       </div>
     </div>
@@ -1063,6 +1070,7 @@ function render(){
 window.addEventListener('hashchange', render);
 render();
 loadCourses().then(render);
+loadPaymentSettings();
 
 // ---------- Course filters ----------
 function bindCourseFilters(){
