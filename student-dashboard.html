@@ -271,10 +271,12 @@ async function loadStudentData(){
     time: s.start_time+' – '+s.end_time, link: s.meet_link || ''
   }));
 
+  const teacherIdByCourse = {}; (enrollRows||[]).forEach(e=>{ if(e.course) teacherIdByCourse[e.course_id]=e.course.teacher_id; });
+
   ASSIGNMENTS = (assignmentRows||[]).map(a=>{
     const sub = subByAssignment[a.id];
     return {
-      id: a.id, title: a.title, course: courseNameById[a.course_id] || '',
+      id: a.id, title: a.title, course: courseNameById[a.course_id] || '', teacher_id: teacherIdByCourse[a.course_id],
       deadline: a.deadline, maxScore: a.max_score,
       status: sub ? sub.status : 'Pending',
       score: sub ? sub.score : null, feedback: sub ? sub.feedback : null
@@ -582,6 +584,10 @@ async function submitAssignment(e, id){
     assignment_id: id, student_id: window.CURRENT_STUDENT.id, status: 'Submitted'
   }, { onConflict: 'assignment_id,student_id' });
   if(error){ toast('Failed: ' + error.message); return false; }
+  const a = ASSIGNMENTS.find(x=>x.id===id);
+  if(a && a.teacher_id){
+    await sb.from('notifications').insert({ user_id: a.teacher_id, text: `${PROFILE.name} submitted "${a.title}" for ${a.course}` });
+  }
   toast('Assignment submitted');
   closeModal();
   await loadStudentData();
