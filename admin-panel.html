@@ -60,7 +60,7 @@
         <p id="loginError" class="hidden text-sm text-red-600 font-medium">Incorrect email or password. Please try again.</p>
         <button id="loginSubmitBtn" class="w-full bg-forest-600 hover:bg-forest-700 text-white font-semibold py-3.5 rounded-full transition-colors">Sign in</button>
       </form>
-      <p class="text-xs text-char-400 text-center mt-8">This is a staging login for internal review only. Real authentication with password recovery arrives in Phase 2.</p>
+      <p class="text-xs text-char-400 text-center mt-8">Contact EDUTECH if you're having trouble signing in.</p>
     </div>
   </div>
 </div>
@@ -208,7 +208,7 @@ async function handleAdminLogin(e){
 
 // ============================================================
 // EDUTECH Admin Panel — demo application (in-memory data only)
-// Phase 2 will connect this UI to Supabase auth + database.
+// Wired to Supabase for real authentication and live data.
 // ============================================================
 
 // ---------- Icons ----------
@@ -1124,6 +1124,7 @@ function openAddStudentModal(){
     <form class="p-6 space-y-4" onsubmit="return saveNewStudent(event)">
       <div><label class="text-sm font-medium text-char-800">Full name</label><input id="ns_name" required class="mt-1.5 w-full border border-forest-200 rounded-xl px-4 py-3"/></div>
       <div><label class="text-sm font-medium text-char-800">Email</label><input id="ns_email" type="email" required class="mt-1.5 w-full border border-forest-200 rounded-xl px-4 py-3"/></div>
+      <div><label class="text-sm font-medium text-char-800">Password</label><input id="ns_password" type="text" minlength="6" placeholder="Leave blank to auto-generate one" class="mt-1.5 w-full border border-forest-200 rounded-xl px-4 py-3"/><p class="text-xs text-char-400 mt-1">The student can change this themselves from their Profile page after logging in.</p></div>
       <div><label class="text-sm font-medium text-char-800 block mb-2">Courses</label><div id="ns_courses"></div></div>
       <button id="nsSubmitBtn" class="w-full bg-forest-600 hover:bg-forest-700 text-white font-semibold py-3 rounded-full transition-colors">Create student account</button>
     </form>
@@ -1136,10 +1137,12 @@ async function saveNewStudent(e){
   btn.disabled = true; btn.textContent = 'Creating...';
   const name = document.getElementById('ns_name').value;
   const email = document.getElementById('ns_email').value;
+  const password = document.getElementById('ns_password').value.trim();
   const courses = [...document.querySelectorAll('#ns_courses input:checked, #ns_courses input:disabled')].map(el=>el.value);
+  if(password && password.length < 6){ toast('Password must be at least 6 characters'); btn.disabled = false; btn.textContent = 'Create student account'; return false; }
   try {
     const result = await callAdminApi('/api/admin-create-account', {
-      role: 'student', email, full_name: name,
+      role: 'student', email, full_name: name, password: password || undefined,
       extra: { desired_courses: courses }
     });
     logAction(`Manually created student account for ${name}`);
@@ -1240,6 +1243,7 @@ function openAddTeacherModal(){
     <form class="p-6 space-y-4" onsubmit="return saveNewTeacher(event)">
       <div><label class="text-sm font-medium text-char-800">Full name</label><input id="nt_name" required class="mt-1.5 w-full border border-forest-200 rounded-xl px-4 py-3"/></div>
       <div><label class="text-sm font-medium text-char-800">Email</label><input id="nt_email" type="email" required class="mt-1.5 w-full border border-forest-200 rounded-xl px-4 py-3"/></div>
+      <div><label class="text-sm font-medium text-char-800">Password</label><input id="nt_password" type="text" minlength="6" placeholder="Leave blank to auto-generate one" class="mt-1.5 w-full border border-forest-200 rounded-xl px-4 py-3"/><p class="text-xs text-char-400 mt-1">The teacher can change this themselves from their Profile page after logging in.</p></div>
       <p class="text-xs text-char-400">Assign subjects afterwards from the Courses page.</p>
       <button id="ntSubmitBtn" class="w-full bg-forest-600 hover:bg-forest-700 text-white font-semibold py-3 rounded-full transition-colors">Create teacher account</button>
     </form>
@@ -1251,8 +1255,10 @@ async function saveNewTeacher(e){
   btn.disabled = true; btn.textContent = 'Creating...';
   const name = document.getElementById('nt_name').value;
   const email = document.getElementById('nt_email').value;
+  const password = document.getElementById('nt_password').value.trim();
+  if(password && password.length < 6){ toast('Password must be at least 6 characters'); btn.disabled = false; btn.textContent = 'Create teacher account'; return false; }
   try {
-    const result = await callAdminApi('/api/admin-create-account', { role: 'teacher', email, full_name: name });
+    const result = await callAdminApi('/api/admin-create-account', { role: 'teacher', email, full_name: name, password: password || undefined });
     logAction(`Manually created teacher account for ${name}`);
     openModal(`
       ${modalHeader('Teacher account created')}
@@ -1500,7 +1506,7 @@ function openNoteModal(){
     <form class="p-6 space-y-4" onsubmit="return saveNote(event)">
       <div><label class="text-sm font-medium text-char-800">Title</label><input id="nf_title" required class="mt-1.5 w-full border border-forest-200 rounded-xl px-4 py-3"/></div>
       <div><label class="text-sm font-medium text-char-800">Course</label><select id="nf_course" class="mt-1.5 w-full border border-forest-200 rounded-xl px-4 py-3">${COURSES.map(c=>`<option>${c.name}</option>`).join('')}</select></div>
-      <div><label class="text-sm font-medium text-char-800">File</label><input type="file" class="mt-1.5 w-full border border-forest-200 rounded-xl px-4 py-3 text-sm"/><p class="text-xs text-char-400 mt-1">Storage connects in Phase 2 — for now this just records the material's title.</p></div>
+      <div><label class="text-sm font-medium text-char-800">File</label><input type="file" class="mt-1.5 w-full border border-forest-200 rounded-xl px-4 py-3 text-sm"/><p class="text-xs text-char-400 mt-1">File storage isn't connected yet — this records the material's title so students see it listed.</p></div>
       <button class="w-full bg-forest-600 hover:bg-forest-700 text-white font-semibold py-3 rounded-full transition-colors">Upload</button>
     </form>
   `);
@@ -1654,11 +1660,14 @@ async function saveAnnouncement(e){
 // ============================================================
 // DATA: CMS content, website settings, system users
 // ============================================================
-let CMS_ARTICLES = [
-  { id:1, title:'How to prepare for WASSCE while learning online', excerpt:'A realistic weekly study plan for students combining online tuition with school.', date:'2026-08-14', published:true },
-  { id:2, title:'5 habits of EDUTECH students who improved by two grades', excerpt:'What our best-performing students do differently in the weeks before exams.', date:'2026-07-20', published:true },
-  { id:3, title:"Choosing between Science and Arts in SHS", excerpt:'A short guide for JHS leavers and SHS 1 students still deciding their track.', date:'2026-06-05', published:false },
-];
+let CMS_ARTICLES = []; // populated live by loadArticles()
+let articlesLoaded = false;
+async function loadArticles(){
+  const { data, error } = await sb.from('articles').select('*').order('created_at',{ascending:false});
+  if(error){ toast('Failed to load articles: ' + error.message); articlesLoaded = true; return; }
+  CMS_ARTICLES = (data||[]).map(a=>({ id:a.id, title:a.title, excerpt:a.excerpt, body:a.body, date:a.created_at, published:a.published }));
+  articlesLoaded = true;
+}
 let SITE_CONTENT = {
   heroHeadline:'Learn Better. Prepare Better. Achieve Better.',
   heroSubtext:"EDUTECH pairs SHS students across Ghana with experienced teachers for live online classes, real assignments, and a study plan that actually leads to better WASSCE grades.",
@@ -1700,13 +1709,18 @@ function systemUsers(){
 // ============================================================
 // PAGE: Articles CMS
 // ============================================================
-pages['/articles'] = () => `
+pages['/articles'] = () => {
+  if(!articlesLoaded){
+    loadArticles().then(()=>{ if(location.hash.replace('#','')==='/articles') render(); });
+  }
+  return `
   <div class="mb-6 flex items-center justify-between flex-wrap gap-3">
     <div><h1 class="font-display text-2xl font-bold text-char-900">Articles CMS</h1><p class="text-char-700/70 mt-1 text-sm">Controls the public Articles page</p></div>
     <button onclick="openArticleModal()" class="bg-forest-600 hover:bg-forest-700 text-white font-semibold px-5 py-2.5 rounded-full text-sm transition-colors">+ New Article</button>
   </div>
+  ${!articlesLoaded ? `<div class="text-center py-16 text-char-400">Loading…</div>` : `
   <div class="space-y-4">
-    ${CMS_ARTICLES.map(a=>`
+    ${!CMS_ARTICLES.length ? `<div class="bg-white border border-forest-100 rounded-2xl p-10 text-center text-char-400">No articles yet.</div>` : CMS_ARTICLES.map(a=>`
     <div class="bg-white border border-forest-100 rounded-2xl p-6 flex items-start justify-between gap-4 flex-wrap">
       <div class="min-w-0">
         <div class="flex items-center gap-2 mb-1">
@@ -1717,35 +1731,57 @@ pages['/articles'] = () => `
         <p class="text-xs text-char-400">${fmtDate(a.date)}</p>
       </div>
       <div class="flex gap-2 shrink-0">
-        <button onclick="toggleArticlePublish(${a.id})" class="border border-forest-200 text-forest-700 hover:bg-forest-50 font-semibold text-xs px-4 py-2 rounded-full transition-colors">${a.published?'Unpublish':'Publish'}</button>
-        <button onclick="openArticleModal(${a.id})" class="border border-forest-200 text-forest-700 hover:bg-forest-50 font-semibold text-xs px-4 py-2 rounded-full transition-colors">Edit</button>
-        <button onclick="deleteArticle(${a.id})" class="border border-red-400 text-red-600 hover:bg-red-50 font-semibold text-xs px-4 py-2 rounded-full transition-colors">Delete</button>
+        <button onclick="toggleArticlePublish('${a.id}')" class="border border-forest-200 text-forest-700 hover:bg-forest-50 font-semibold text-xs px-4 py-2 rounded-full transition-colors">${a.published?'Unpublish':'Publish'}</button>
+        <button onclick="openArticleModal('${a.id}')" class="border border-forest-200 text-forest-700 hover:bg-forest-50 font-semibold text-xs px-4 py-2 rounded-full transition-colors">Edit</button>
+        <button onclick="deleteArticle('${a.id}')" class="border border-red-400 text-red-600 hover:bg-red-50 font-semibold text-xs px-4 py-2 rounded-full transition-colors">Delete</button>
       </div>
     </div>`).join('')}
-  </div>
-`;
-function toggleArticlePublish(id){ const a=CMS_ARTICLES.find(x=>x.id===id); if(!a)return; a.published=!a.published; logAction(`${a.published?'Published':'Unpublished'} article "${a.title}"`); toast(a.published?'Article published':'Article unpublished'); render(); }
-function deleteArticle(id){ const a=CMS_ARTICLES.find(x=>x.id===id); if(!a)return; if(!confirm('Delete this article?')) return; CMS_ARTICLES=CMS_ARTICLES.filter(x=>x.id!==id); logAction(`Deleted article "${a.title}"`); toast('Article deleted'); render(); }
+  </div>`}
+`;};
+async function toggleArticlePublish(id){
+  const a = CMS_ARTICLES.find(x=>x.id===id); if(!a) return;
+  const { error } = await sb.from('articles').update({ published: !a.published }).eq('id', id);
+  if(error){ toast('Failed: ' + error.message); return; }
+  logAction(`${!a.published?'Published':'Unpublished'} article "${a.title}"`);
+  toast(!a.published?'Article published':'Article unpublished');
+  await loadArticles(); render();
+}
+async function deleteArticle(id){
+  const a = CMS_ARTICLES.find(x=>x.id===id); if(!a) return;
+  if(!confirm('Delete this article?')) return;
+  const { error } = await sb.from('articles').delete().eq('id', id);
+  if(error){ toast('Failed: ' + error.message); return; }
+  logAction(`Deleted article "${a.title}"`);
+  toast('Article deleted');
+  await loadArticles(); render();
+}
 function openArticleModal(id){
   const a = id ? CMS_ARTICLES.find(x=>x.id===id) : null;
   openModal(`
     ${modalHeader(a?'Edit Article':'New Article')}
-    <form class="p-6 space-y-4" onsubmit="return saveArticle(event,${id||'null'})">
+    <form class="p-6 space-y-4" onsubmit="return saveArticle(event,'${id||''}')">
       <div><label class="text-sm font-medium text-char-800">Title</label><input id="ar_title" required value="${a?a.title:''}" class="mt-1.5 w-full border border-forest-200 rounded-xl px-4 py-3"/></div>
       <div><label class="text-sm font-medium text-char-800">Excerpt</label><textarea id="ar_excerpt" rows="3" required class="mt-1.5 w-full border border-forest-200 rounded-xl px-4 py-3">${a?a.excerpt:''}</textarea></div>
       <label class="flex items-center gap-2"><input type="checkbox" id="ar_published" ${a&&a.published?'checked':''} class="w-4 h-4 accent-forest-600"/><span class="text-sm text-char-800">Publish immediately</span></label>
-      <button class="w-full bg-forest-600 hover:bg-forest-700 text-white font-semibold py-3 rounded-full transition-colors">${a?'Save changes':'Create article'}</button>
+      <button id="arSubmitBtn" class="w-full bg-forest-600 hover:bg-forest-700 text-white font-semibold py-3 rounded-full transition-colors">${a?'Save changes':'Create article'}</button>
     </form>
   `);
 }
-function saveArticle(e,id){
+async function saveArticle(e,id){
   e.preventDefault();
+  const btn = document.getElementById('arSubmitBtn');
+  btn.disabled = true; btn.textContent = 'Saving...';
   const title = document.getElementById('ar_title').value;
   const excerpt = document.getElementById('ar_excerpt').value;
   const published = document.getElementById('ar_published').checked;
-  if(id){ const a=CMS_ARTICLES.find(x=>x.id===id); Object.assign(a,{title,excerpt,published}); logAction(`Edited article "${title}"`); toast('Article updated'); }
-  else { CMS_ARTICLES.unshift({ id:Date.now(), title, excerpt, published, date:new Date().toISOString().slice(0,10) }); logAction(`Created article "${title}"`); toast('Article created'); }
-  closeModal(); render();
+  const { error } = id
+    ? await sb.from('articles').update({ title, excerpt, published }).eq('id', id)
+    : await sb.from('articles').insert({ title, excerpt, published });
+  if(error){ toast('Failed: ' + error.message); btn.disabled = false; btn.textContent = id?'Save changes':'Create article'; return false; }
+  logAction(id ? `Edited article "${title}"` : `Created article "${title}"`);
+  toast(id ? 'Article updated' : 'Article created');
+  closeModal();
+  await loadArticles(); render();
   return false;
 }
 
@@ -1917,10 +1953,10 @@ pages['/security'] = () => `
   <div class="grid lg:grid-cols-2 gap-6 mb-6">
     <form onsubmit="return changePassword(event)" class="bg-white border border-forest-100 rounded-2xl p-6 space-y-4">
       <h3 class="font-display font-semibold text-char-900 mb-1">Change password</h3>
-      <div><label class="text-sm font-medium text-char-800">Current password</label><input type="password" required class="mt-1.5 w-full border border-forest-200 rounded-xl px-4 py-3"/></div>
-      <div><label class="text-sm font-medium text-char-800">New password</label><input type="password" required class="mt-1.5 w-full border border-forest-200 rounded-xl px-4 py-3"/></div>
-      <button class="w-full bg-forest-600 hover:bg-forest-700 text-white font-semibold py-3 rounded-full transition-colors">Update password</button>
-      <p class="text-xs text-char-400 text-center">Demo only — real password changes take effect once Supabase auth connects in Phase 2.</p>
+      <div><label class="text-sm font-medium text-char-800">Current password</label><input id="cp_current" type="password" required class="mt-1.5 w-full border border-forest-200 rounded-xl px-4 py-3"/></div>
+      <div><label class="text-sm font-medium text-char-800">New password</label><input id="cp_new" type="password" required minlength="6" class="mt-1.5 w-full border border-forest-200 rounded-xl px-4 py-3"/></div>
+      <p id="cpError" class="hidden text-sm text-red-600 font-medium"></p>
+      <button id="cpSubmitBtn" class="w-full bg-forest-600 hover:bg-forest-700 text-white font-semibold py-3 rounded-full transition-colors">Update password</button>
     </form>
     <div class="bg-white border border-forest-100 rounded-2xl p-6">
       <h3 class="font-display font-semibold text-char-900 mb-4">Current session</h3>
@@ -1943,7 +1979,38 @@ pages['/security'] = () => `
     </div>
   </div>
 `;
-function changePassword(e){ e.preventDefault(); toast('Password updated (demo only)'); return false; }
+async function changePassword(e){
+  e.preventDefault();
+  const btn = document.getElementById('cpSubmitBtn');
+  const err = document.getElementById('cpError');
+  const currentPw = document.getElementById('cp_current').value;
+  const newPw = document.getElementById('cp_new').value;
+  err.classList.add('hidden');
+  btn.disabled = true; btn.textContent = 'Updating...';
+
+  // Verify the current password is actually correct before changing it
+  const { error: verifyError } = await sb.auth.signInWithPassword({ email: window.CURRENT_ADMIN.email, password: currentPw });
+  if(verifyError){
+    err.textContent = 'Current password is incorrect.';
+    err.classList.remove('hidden');
+    btn.disabled = false; btn.textContent = 'Update password';
+    return false;
+  }
+
+  const { error } = await sb.auth.updateUser({ password: newPw });
+  if(error){
+    err.textContent = error.message;
+    err.classList.remove('hidden');
+    btn.disabled = false; btn.textContent = 'Update password';
+    return false;
+  }
+
+  toast('Password updated — use your new password next time you log in');
+  document.getElementById('cp_current').value = '';
+  document.getElementById('cp_new').value = '';
+  btn.disabled = false; btn.textContent = 'Update password';
+  return false;
+}
 
 // render() is triggered by handleAdminLogin() on successful sign-in, not on page load
 
